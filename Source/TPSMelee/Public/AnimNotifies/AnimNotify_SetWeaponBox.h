@@ -1,0 +1,24 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
+#include "AnimNotify_SetWeaponBox.generated.h"
+
+/**
+ * 
+ */
+UCLASS(const, hidecategories=Object, collapsecategories, Config = Game, meta=(DisplayName="Set Weapon Box Collision"))
+class TPSMELEE_API UAnimNotify_SetWeaponBox : public UAnimNotify
+{
+	GENERATED_BODY()
+
+public:
+	UAnimNotify_SetWeaponBox();
+	
+	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimNotify")
+	bool bShouldEnable {false};
+};
