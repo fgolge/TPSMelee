@@ -7,9 +7,8 @@
 void UAnimNotify_SaveAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                     const FAnimNotifyEventReference& EventReference)
 {
-	IInterface_Character* Interface_Character = Cast<IInterface_Character>(MeshComp->GetOwner());
-	if(Interface_Character)
+	if(MeshComp->GetOwner()->Implements<UInterface_Character>())
 	{
-		Interface_Character->Execute_SaveAttack(MeshComp->GetOwner());
+		IInterface_Character::Execute_SaveAttack(MeshComp->GetOwner());
 	}
 }

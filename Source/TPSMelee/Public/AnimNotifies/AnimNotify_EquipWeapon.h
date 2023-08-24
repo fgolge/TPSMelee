@@ -15,7 +15,5 @@ class TPSMELEE_API UAnimNotify_EquipWeapon : public UAnimNotify
 	GENERATED_BODY()
 
 public:
-	UAnimNotify_EquipWeapon();
-
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 };

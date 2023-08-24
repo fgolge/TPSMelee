@@ -41,6 +41,7 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ABasePlayer::Jump);
 		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ABasePlayer::Attack);
 		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ABasePlayer::ReachForWeapon);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Started, this, &ABasePlayer::Block);
 	}
 }
 
@@ -156,6 +157,13 @@ void ABasePlayer::Attack()
 	}
 }
 
+void ABasePlayer::Block()
+{
+	if(!CanBlock()) return;
+
+	SetActionState(EActionState::EAS_Blocking);
+}
+
 void ABasePlayer::PlayMontage(UAnimMontage* Montage)
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -233,6 +241,11 @@ bool ABasePlayer::CanEquip()
 bool ABasePlayer::CanAttack()
 {
 	return IsEquipped() && (IsUnoccupied() || IsBlocking());
+}
+
+bool ABasePlayer::CanBlock()
+{
+	return IsEquipped() && IsUnoccupied();
 }
 
 void ABasePlayer::SetupCamera()

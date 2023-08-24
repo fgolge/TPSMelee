@@ -44,10 +44,12 @@ private:
 	/* Combat */
 	void ReachForWeapon();
 	void Attack();
+	void Block();
 	void SetAttackIndex();
 	void ResetAttackIndex();
 	bool CanEquip();
 	bool CanAttack();
+	bool CanBlock();
 	
 	/* Animation */
 	void PlayMontage(UAnimMontage* Montage);
@@ -96,6 +98,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
 	TObjectPtr<UInputAction> EquipAction;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> BlockAction;
+	
 	FInputActionValue MovementValue;
 
 	/* Components */

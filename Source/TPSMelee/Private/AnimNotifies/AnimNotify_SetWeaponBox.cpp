@@ -4,10 +4,6 @@
 #include "AnimNotifies/AnimNotify_SetWeaponBox.h"
 #include "Characters/BaseCharacter.h"
 
-UAnimNotify_SetWeaponBox::UAnimNotify_SetWeaponBox()
-{
-	
-}
 
 void UAnimNotify_SetWeaponBox::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 											   const FAnimNotifyEventReference& EventReference)
@@ -23,5 +19,6 @@ void UAnimNotify_SetWeaponBox::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	{
 		// BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+	
 }
 
