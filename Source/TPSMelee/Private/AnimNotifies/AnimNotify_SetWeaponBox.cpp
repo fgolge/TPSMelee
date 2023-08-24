@@ -17,11 +17,11 @@ void UAnimNotify_SetWeaponBox::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 
 	if(bShouldEnable)
 	{
-		BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::QueryOnly);
+		// BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::QueryOnly);
 	}
 	else
 	{
-		BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+		// BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 

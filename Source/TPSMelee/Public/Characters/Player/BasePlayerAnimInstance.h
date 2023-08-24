@@ -49,7 +49,10 @@ private:
 	bool bIsAccelerating;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
-	bool bIsFullBody;
+	bool bIsFullBody { false };
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
+	bool bIsUpperBody { false };
 
 	UPROPERTY(BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EWeaponState WeaponState;

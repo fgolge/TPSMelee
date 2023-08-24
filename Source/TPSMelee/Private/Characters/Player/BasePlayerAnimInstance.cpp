@@ -31,6 +31,7 @@ void UBasePlayerAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds
 		bIsAccelerating = PlayerMovementComponent->GetCurrentAcceleration().Length() > 0;
 		WeaponState = BasePlayer->GetWeaponState();
 		CombatState = BasePlayer->GetCombatState();
-		bIsFullBody = BasePlayer->IsDodging() || BasePlayer->IsAttacking();
+		bIsFullBody = BasePlayer->IsFullBody();
+		bIsUpperBody = BasePlayer->IsUpperBody();
 	}
 }

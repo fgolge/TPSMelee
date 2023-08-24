@@ -23,68 +23,35 @@ protected:
 
 private:
 	/**
-	 * Functions
+	 * Variables
 	 */
 
 	/* Combat */
-	void DirectionalHitReact(const FVector& HitterLocation);
-	void PlayHitSound(const FVector& ImpactPoint);
-	void SpawnHitParticles(const FVector& ImpactPoint);
-	
+	UPROPERTY(EditAnywhere,	Category = "Combat")
+	TSubclassOf<AWeapon> WeaponClass;
+
 protected:
 	/**
 	 * Functions
 	 */
-
+	
 	/* Combat */
-	virtual bool CanAttack();
-	bool IsAlive();
-	virtual void GetHit_Implementation(const FVector& ImpactPoint ,AActor* Hitter) override;
-	void Die();
+	void SpawnWeapon(FName SocketName);
 
-	UFUNCTION(BlueprintCallable)
-	virtual void Attack();
-	
-	/* Inventory */
-	void SpawnWeapon();
-
-	/* Animation */
-	virtual void PlayMontage(UAnimMontage* Montage);
-
-	/* Movement */
-	UFUNCTION(BlueprintCallable)
-	void SetSpeed(const float Value);
-	
 	/**
 	 * Variables
 	 */
 
 	/* Components */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UAttributeComponent> Attributes;
-	
-	/* Combat */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	TSubclassOf<AWeapon> WeaponClass;
 
+	/* Combat */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<AWeapon> Weapon;
 
-	/* Inventory */
-	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+	/* Animation */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	FName WeaponSocketName;
-
-	/* Montages */
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	UAnimMontage* AttackMontage;
-
-public:
-	/**
-	 * Functions
-	 */
-
-	/* Anim Notifies */
-	UFUNCTION(BlueprintCallable)
-	void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
 
 };

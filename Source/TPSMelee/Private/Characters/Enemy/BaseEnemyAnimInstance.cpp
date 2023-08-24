@@ -25,6 +25,6 @@ void UBaseEnemyAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	if(BaseEnemy && CharacterMovementComponent)
 	{
 		GroundSpeed = UKismetMathLibrary::VSizeXY(CharacterMovementComponent->Velocity);
-		EnemyActionState = BaseEnemy->GetEnemyActionState();
+		// EnemyActionState = BaseEnemy->GetEnemyActionState();
 	}
 }

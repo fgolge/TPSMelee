@@ -22,4 +22,16 @@ class TPSMELEE_API IInterface_Character
 public:
 	UFUNCTION(BlueprintNativeEvent)
 	void GetHit(const FVector& ImpactPoint, AActor* Hitter);
+
+	UFUNCTION(BlueprintNativeEvent)
+	void EquipWeapon();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void FinishEquipping();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void SaveAttack();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void ResetCombo();
 };

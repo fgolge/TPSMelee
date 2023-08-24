@@ -14,48 +14,20 @@
 
 ABasePlayer::ABasePlayer()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	
 	SetupCamera();
-
-	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	GetMesh()->SetGenerateOverlapEvents(true);
 }
 
 void ABasePlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
+	SpawnWeapon(SheathSocketName);
 	AddMappingContext();
-	SetSpeedState(ESpeedState::ESS_Running);
-
-	if(Weapon)
-	{
-		Weapon->AttachMeshToSocket(GetMesh(), SheathSocketName);
-	}
-
-	PlayerController = UGameplayStatics::GetPlayerController(this, 0);
-	CameraManager = UGameplayStatics::GetPlayerCameraManager(this, 0);
-	SetEngagedControls(false);
-	DistanceWeight = 1 - CentricityWeight;
 }
 
 void ABasePlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if(LockedTarget && PlayerController && ShouldLockOn())
-	{
-		const FRotator ControlRot = GetController()->GetControlRotation();
-		const FRotator LookAtRot = UKismetMathLibrary::FindLookAtRotation(CameraManager->GetCameraLocation(), LockedTarget->GetActorLocation());
-		const FRotator InterpRot = FMath::RInterpTo(ControlRot, LookAtRot, DeltaTime, LockInterpSpeed);
-		const FRotator NewPlayerRot = FRotator(ControlRot.Pitch, InterpRot.Yaw, ControlRot.Roll);
-
-		PlayerController->SetControlRotation(NewPlayerRot);
-	}
 }
 
 void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -64,25 +36,18 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	if(UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInputComponent->BindAction(MovementAction, ETriggerEvent::Triggered, this, &ABasePlayer::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABasePlayer::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABasePlayer::Look);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ABasePlayer::Jump);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ABasePlayer::Sprint);
-		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ABasePlayer::Run);
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ABasePlayer::Attack);
-		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ABasePlayer::Equip);
-		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &ABasePlayer::Dodge);
-		EnhancedInputComponent->BindAction(TargetLockOnAction, ETriggerEvent::Triggered, this, &ABasePlayer::LockOnToTarget);
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ABasePlayer::Attack);
+		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ABasePlayer::ReachForWeapon);
 	}
-	
 }
 
 void ABasePlayer::Move(const FInputActionValue& Value)
 {
 	const FVector2d MovementVector = Value.Get<FVector2d>();
-
 	const FRotator YawRotation(0.f, GetControlRotation().Yaw, 0.f);
-	
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	AddMovementInput(ForwardDirection, MovementVector.Y);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
@@ -94,31 +59,24 @@ void ABasePlayer::Move(const FInputActionValue& Value)
 void ABasePlayer::Look(const FInputActionValue& Value)
 {
 	const FVector2d LookAxisVector = Value.Get<FVector2d>();
-
 	AddControllerPitchInput(LookAxisVector.Y);
 	AddControllerYawInput(LookAxisVector.X);
 }
 
 void ABasePlayer::Jump()
 {
-	if(IsUnoccupied())
+	if(IsUnoccupied() || IsBlocking())
 	{
 		Super::Jump();
-
-		CancelAttack();
 	}
-}
-
-void ABasePlayer::Sprint()
-{
-	if(IsAttacking()) TempSpeedState = ESpeedState::ESS_Sprinting;
-	else if(ShouldSprint()) SetSpeedState(ESpeedState::ESS_Sprinting);
 }
 
 void ABasePlayer::Falling()
 {
 	Super::Falling();
 
+	StopAnimMontage();
+	ResetAttackIndex();
 	SetActionState(EActionState::EAS_Falling);
 }
 
@@ -129,151 +87,92 @@ void ABasePlayer::Landed(const FHitResult& Hit)
 	SetActionState(EActionState::EAS_Unoccupied);
 }
 
-void ABasePlayer::SaveAttack()
-{
-	SetActionState(EActionState::EAS_Unoccupied);
-}
-
-void ABasePlayer::ResetCombo()
-{
-	SetActionState(EActionState::EAS_Unoccupied);
-	if(SpeedState <= TempSpeedState) SetSpeedState(TempSpeedState);
-	ResetAttackIndex();
-}
-
-void ABasePlayer::AttachWeaponToHand()
-{
-	if(Weapon)
-	{
-		Weapon->AttachMeshToSocket(GetMesh(), WeaponSocketName);
-	}
-}
-
-void ABasePlayer::AttachWeaponToBack()
-{
-	if(Weapon)
-	{
-		Weapon->AttachMeshToSocket(GetMesh(), SheathSocketName);
-	}
-}
-
-void ABasePlayer::FinishEquipping()
-{
-	SetActionState(EActionState::EAS_Unoccupied);
-}
-
-void ABasePlayer::DodgeEnd()
-{
-	if(IsEngaged())
-	{
-		bUseControllerRotationYaw = true;
-	}
-	
-	SetActionState(EActionState::EAS_Unoccupied);
-}
-
-void ABasePlayer::Attack()
-{
-	if(!IsEquipped()) return;
-	
-	if(CanAttack() && Combo[AttackIndex])
-	{
-		//if(!IsEngaged()) SetEngagedControls(true);
-		SetActionState(EActionState::EAS_Attacking);
-		if(SpeedState != ESpeedState::ESS_Attacking) TempSpeedState = SpeedState;
-		SetSpeedState(ESpeedState::ESS_Attacking);
-		AttackMontage = Combo[AttackIndex];
-		if(!IsEquipped()) return;
-		Super::Attack();
-		SetAttackIndex();
-	}
-}
-
-void ABasePlayer::Equip()
+/* Starts equipping action */
+void ABasePlayer::ReachForWeapon()
 {
 	if(!CanEquip()) return;
 
-	CancelAttack();
 	SetActionState(EActionState::EAS_Equipping);
-	
+	bIsUpperBody = true;
+
 	if(!IsEquipped())
 	{
-		SetWeaponState(EWeaponState::EWS_Equipped);
-		if(IsEngaged()) SetEngagedControls(false);
-		SetCombatState(ECombatState::ECS_Free);
-		LockedTarget = nullptr;
 		if(EquipMontage)
 		{
 			PlayMontage(EquipMontage);
-
-			if(IsSprinting()) SetSpeedState(ESpeedState::ESS_Sprinting);
-			if(IsRunning()) SetSpeedState(ESpeedState::ESS_Running);
 		}
 	}
 	else
 	{
-		SetWeaponState(EWeaponState::EWS_Unequipped);
-		if(IsEngaged()) SetEngagedControls(true);
 		if(UnequipMontage)
 		{
 			PlayMontage(UnequipMontage);
-			
-			if(IsSprinting()) SetSpeedState(ESpeedState::ESS_Sprinting);
-			else if(IsRunning()) SetSpeedState(ESpeedState::ESS_Running);
 		}
 	}
 }
 
-bool ABasePlayer::CanEquip()
+/* Once the character reaches the weapon, it sets states and attaches mesh to a socket */
+void ABasePlayer::EquipWeapon_Implementation()
 {
-	return IsUnoccupied();
+	if(!IsEquipped())
+	{
+		SetWeaponState(EWeaponState::EWS_Equipped);
+		AttachWeaponToSocket(WeaponSocketName);
+	}
+	else
+	{
+		SetWeaponState(EWeaponState::EWS_Unequipped);
+		AttachWeaponToSocket(SheathSocketName);
+	}
 }
 
-void ABasePlayer::CancelAttack()
+void ABasePlayer::FinishEquipping_Implementation()
+{
+	bIsUpperBody = false;
+	SetActionState(EActionState::EAS_Unoccupied);
+}
+
+void ABasePlayer::SaveAttack_Implementation()
+{
+	SetActionState(EActionState::EAS_Unoccupied);
+}
+
+void ABasePlayer::ResetCombo_Implementation()
 {
 	ResetAttackIndex();
+	bIsFullBody = false;
 }
 
-void ABasePlayer::Dodge()
+void ABasePlayer::Attack()
 {
-	if(IsUnoccupied() && IsEngaged())
+	if(!CanAttack()) return;
+	
+	if(ComboMontages[AttackIndex])
 	{
-		bUseControllerRotationYaw = false;
-	}
-	if(!IsUnoccupied()) return;
-	RotateActorForDodge();
-	CancelAttack();
-	SetActionState(EActionState::EAS_Dodge);
-	SetSpeedState(ESpeedState::ESS_Running);
-	if(DodgeMontage)
-	{
-		PlayMontage(DodgeMontage);
+		bIsFullBody = true;
+		SetActionState(EActionState::EAS_Attacking);
+		PlayMontage(ComboMontages[AttackIndex]);
+		SetAttackIndex();
 	}
 }
 
-void ABasePlayer::SetEngagedControls(bool Value)
+void ABasePlayer::PlayMontage(UAnimMontage* Montage)
 {
-	GetCharacterMovement()->bOrientRotationToMovement = !Value;
-	GetCharacterMovement()->bUseControllerDesiredRotation = Value;
-	bUseControllerRotationYaw = Value;
-}
-
-void ABasePlayer::SetAttackingControls(bool Value)
-{
-	GetCharacterMovement()->bOrientRotationToMovement = !Value;
-	GetCharacterMovement()->bUseControllerDesiredRotation = Value;
-	bUseControllerRotationYaw = Value;
-}
-
-void ABasePlayer::RotateActorForDodge()
-{
-	if(Controller)
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if(AnimInstance && Montage)
 	{
-		FVector DesiredDirection = FVector(MovementValue.Get<FVector>().Y, MovementValue.Get<FVector>().X, 0);
-		FRotator ControllerRotation = Controller->GetControlRotation();
-		FRotator DesiredRotation = FRotator(0, DesiredDirection.Rotation().Yaw + ControllerRotation.Yaw, 0);
-		SetActorRotation(DesiredRotation);
+		AnimInstance->Montage_Play(Montage);
 	}
+}
+
+void ABasePlayer::SetWeaponState(EWeaponState State)
+{
+	WeaponState = State;
+}
+
+void ABasePlayer::SetCombatState(ECombatState State)
+{
+	CombatState = State;
 }
 
 void ABasePlayer::SetActionState(EActionState State)
@@ -284,122 +183,21 @@ void ABasePlayer::SetActionState(EActionState State)
 void ABasePlayer::SetSpeedState(ESpeedState State)
 {
 	SpeedState = State;
-	
-	if(IsEquipped())
-	{
-		switch(State)
-		{
-		case ESpeedState::ESS_Running:
-			SetSpeed(EquippedRunSpeed);
-			break;
-		case ESpeedState::ESS_Sprinting:
-			SetSpeed(EquippedSprintSpeed);
-			break;
-		case ESpeedState::ESS_Attacking:
-			SetSpeed(AttackingWalkSpeed);
-			break;
-		default:
-			SetSpeed(EquippedRunSpeed);
-			break;
-		}
-	}
-	else
-	{
-		switch(State)
-		{
-		case ESpeedState::ESS_Running:
-			SetSpeed(UnarmedRunSpeed);
-			break;
-		case ESpeedState::ESS_Sprinting:
-			SetSpeed(UnarmedSprintSpeed);
-			break;
-		default:
-			SetSpeed(UnarmedRunSpeed);
-			break;
-		}
-	}
-	
 }
 
-void ABasePlayer::LockOnToTarget()
+bool ABasePlayer::IsEquipped()
 {
-	if(!IsEquipped()) return;
-	
-	if(IsEngaged())
-	{
-		DisengageFromTarget();
-		LockedTarget = nullptr;
-	}
-	else
-	{
-		FindTargetToLockOn();
-
-		if(LockedTarget)
-		{
-			EngageToTarget();
-		}
-	}
+	return WeaponState == EWeaponState::EWS_Equipped;
 }
 
-void ABasePlayer::DisengageFromTarget()
+bool ABasePlayer::IsUnoccupied()
 {
-	SetCombatState(ECombatState::ECS_Free);
-	SetEngagedControls(false);
+	return ActionState == EActionState::EAS_Unoccupied;
 }
 
-void ABasePlayer::EngageToTarget()
+bool ABasePlayer::IsBlocking()
 {
-	SetCombatState(ECombatState::ECS_Engaged);
-	if(IsEquipped()) SetEngagedControls(true);
-}
-
-void ABasePlayer::FindTargetToLockOn()
-{
-	TArray<FHitResult> HitResults;
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.AddUnique(this);
-		
-	const FVector Start = GetActorLocation();
-	const FVector End = GetActorLocation() + (Camera->GetForwardVector().GetSafeNormal2D() * TraceExtentMultiplier);
-
-	UKismetSystemLibrary::SphereTraceMulti(
-		this,
-		Start,
-		End,
-		SphereTraceRadius,
-		TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		bShowDebugs ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
-		HitResults,
-		true);
-
-	float TotalLockOnCost = 0.f;
-		
-	if(HitResults.Num() > 0)
-	{
-		for(FHitResult OutHit : HitResults)
-		{
-			if(OutHit.GetActor() && OutHit.GetActor()->ActorHasTag(TEXT("Enemy")))
-			{
-				float Centricity = CalculateCentricityCost(OutHit) * CentricityWeight;
-				float Distance = CalculateDistanceCost(OutHit) * DistanceWeight;
-				if(Centricity + Distance > TotalLockOnCost && IsInFOV(CalculateCentricityCost(OutHit)))
-				{
-					TotalLockOnCost = Centricity + Distance;
-					LockedTarget = OutHit.GetActor();
-				}
-					
-				/* Debug */
-				/*
-				const FString CostString = FString::SanitizeFloat(Centricity + Distance);
-				const FString DotString = FString::SanitizeFloat(CalculateCentricityCost(OutHit));
-				UKismetSystemLibrary::DrawDebugString(this, FVector(0.f, 0.f, -50.f), CostString, OutHit.GetActor(), FLinearColor::White, 5.f);
-				UKismetSystemLibrary::DrawDebugString(this, FVector(0.f, 0.f, 50.f), DotString, OutHit.GetActor(), FLinearColor::White, 5.f);
-				*/
-			}
-		}
-	}
+	return ActionState == EActionState::EAS_Blocking;
 }
 
 void ABasePlayer::SetAttackIndex()
@@ -414,116 +212,27 @@ void ABasePlayer::SetAttackIndex()
 	}
 }
 
-FRotator ABasePlayer::GetLockOnRotation(float DeltaTime)
+void ABasePlayer::ResetAttackIndex()
 {
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(Camera->GetComponentLocation(), LockedTarget->GetActorLocation());
-	LockedTargetRotation = FRotator(LookAtRotation.Pitch, LookAtRotation.Yaw, 0.f);
-	return FMath::RInterpTo(Camera->GetComponentRotation(), LockedTargetRotation, DeltaTime, 30.f);
+	AttackIndex = 0;
 }
 
-bool ABasePlayer::ShouldLockOn()
+void ABasePlayer::AttachWeaponToSocket(FName SocketName)
 {
-	if(LockedTarget)
+	if(Weapon)
 	{
-		float DistanceToTarget = FVector::Distance(GetActorLocation(), LockedTarget->GetActorLocation());
-
-		if(DistanceToTarget < MaxDistanceToTarget)
-		{
-			return true;
-		}
-
-		DisengageFromTarget();
-		LockedTarget = nullptr;
-		return false;
+		Weapon->AttachMeshToSocket(GetMesh(), SocketName);
 	}
-
-	return false;
 }
 
-float ABasePlayer::CalculateCentricityCost(FHitResult& HitResult)
+bool ABasePlayer::CanEquip()
 {
-	const FVector CamToTargetVector = UKismetMathLibrary::GetDirectionUnitVector(CameraManager->GetCameraLocation(), HitResult.GetActor()->GetActorLocation());
-	const float DotOfVector = FVector::DotProduct(CamToTargetVector, CameraManager->GetActorForwardVector());
-	return DotOfVector;
-}
-
-float ABasePlayer::CalculateDistanceCost(FHitResult& HitResult)
-{
-	float Distance = FVector::Distance(GetActorLocation(), HitResult.GetActor()->GetActorLocation());
-	return 1 - (Distance/MaxDistanceToTarget);
-}
-
-bool ABasePlayer::IsInFOV(float DotOfVector)
-{
-	const float AngleOfVector = UKismetMathLibrary::DegAcos(DotOfVector);
-	const float FovBounds = (CameraManager->GetFOVAngle() * 0.5f) - 10.f;
-	return UKismetMathLibrary::InRange_FloatFloat(AngleOfVector, 0.f, FovBounds);
-}
-
-void ABasePlayer::SetWeaponState(EWeaponState State)
-{
-	WeaponState = State;
+	return Weapon && (IsUnoccupied() || IsBlocking());
 }
 
 bool ABasePlayer::CanAttack()
 {
-	return IsUnoccupied();
-}
-
-bool ABasePlayer::IsUnoccupied()
-{
-	return ActionState == EActionState::EAS_Unoccupied;
-}
-
-bool ABasePlayer::IsEquipped()
-{
-	return WeaponState == EWeaponState::EWS_Equipped;
-}
-
-bool ABasePlayer::IsRunning()
-{
-	return SpeedState == ESpeedState::ESS_Running;
-}
-
-bool ABasePlayer::IsSprinting()
-{
-	return SpeedState == ESpeedState::ESS_Sprinting;
-}
-
-void ABasePlayer::SetCombatState(ECombatState State)
-{
-	CombatState = State;
-}
-
-bool ABasePlayer::IsEngaged()
-{
-	return CombatState == ECombatState::ECS_Engaged;
-}
-
-bool ABasePlayer::IsAttacking()
-{
-	return ActionState == EActionState::EAS_Attacking;
-}
-
-bool ABasePlayer::IsDodging()
-{
-	return ActionState == EActionState::EAS_Dodge;
-}
-
-bool ABasePlayer::ShouldSprint()
-{
-	if(IsEquipped())
-	{
-		return GetCharacterMovement()->MaxWalkSpeed < EquippedSprintSpeed;
-	}
-
-	return GetCharacterMovement()->MaxWalkSpeed < UnarmedSprintSpeed;
-}
-
-void ABasePlayer::Run()
-{
-	if(IsAttacking()) TempSpeedState = ESpeedState::ESS_Running;
-	else SetSpeedState(ESpeedState::ESS_Running);
+	return IsEquipped() && (IsUnoccupied() || IsBlocking());
 }
 
 void ABasePlayer::SetupCamera()
@@ -537,9 +246,7 @@ void ABasePlayer::SetupCamera()
 
 void ABasePlayer::AddMappingContext()
 {
-	PlayerController = Cast<APlayerController>(Controller);
-	
-	if(PlayerController)
+	if(const APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if(UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
@@ -548,7 +255,27 @@ void ABasePlayer::AddMappingContext()
 	}
 }
 
-void ABasePlayer::ResetAttackIndex()
+bool ABasePlayer::IsFullBody()
 {
-	AttackIndex = 0;
+	return bIsFullBody;
+}
+
+bool ABasePlayer::IsUpperBody()
+{
+	return bIsUpperBody;
+}
+
+bool ABasePlayer::IsAttacking() const
+{
+	return ActionState == EActionState::EAS_Attacking;
+}
+
+bool ABasePlayer::IsDodging() const
+{
+	return ActionState == EActionState::EAS_Dodge;
+}
+
+bool ABasePlayer::IsEquipping() const
+{
+	return ActionState == EActionState::EAS_Equipping;
 }
