@@ -40,33 +40,38 @@ private:
 	virtual void Jump() override;
 	virtual void Falling() override;
 	virtual void Landed(const FHitResult& Hit) override;
+	void LockOnToTarget();
 
 	/* Combat */
 	void ReachForWeapon();
 	void Attack();
-	void Block();
+	void Dodge();
 	void SetAttackIndex();
 	void ResetAttackIndex();
 	bool CanEquip();
 	bool CanAttack();
-	bool CanBlock();
+	bool CanDodge();
+	void RotateActorForDodge();
+	void EngagedCameraSettings(bool Value);
+	void FindTargetToLockOn();
+	void EngageToTarget();
+	void DisengageFromTarget();
+	float CalculateCentricityCost(FHitResult& HitResult);
+	float CalculateDistanceCost(FHitResult& HitResult);
+	bool IsInFOV(float DotOfVector);
+	bool ShouldLockOn();
+	void RotateCameraToTarget(float DeltaTime);
 	
 	/* Animation */
 	void PlayMontage(UAnimMontage* Montage);
 	void AttachWeaponToSocket(FName SocketName);
-	virtual void EquipWeapon_Implementation() override;
-	virtual void FinishEquipping_Implementation() override;
-	virtual void SaveAttack_Implementation() override;
-	virtual void ResetCombo_Implementation() override;
 
 	/* States */
 	void SetWeaponState(EWeaponState State);
 	void SetCombatState(ECombatState State);
 	void SetActionState(EActionState State);
-	void SetSpeedState(ESpeedState State);
 	bool IsEquipped();
 	bool IsUnoccupied();
-	bool IsBlocking();
 	
 	/* Other */
 	void SetupCamera();
@@ -77,6 +82,25 @@ private:
 	 */
 
 	/* Combat */
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float LockInterpSpeed { 5.f };
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float MaxDistanceToTarget { 1000.f };
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float TraceExtentMultiplier { 500.f };
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float TargetSearchRadius { 100.f };
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	bool bShowTargetSearchDebug { true };
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat", meta = (AllowPrivateAccess, ClampMin = 0, ClampMax = 1))
+	float CentricityWeight { .5f };
+
+	float DistanceWeight;
 	int32 AttackIndex { 0 };
 	
 	/* Input */
@@ -99,7 +123,10 @@ private:
 	TObjectPtr<UInputAction> EquipAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
-	TObjectPtr<UInputAction> BlockAction;
+	TObjectPtr<UInputAction> DodgeAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
+	TObjectPtr<UInputAction> TargetLockOnAction;
 	
 	FInputActionValue MovementValue;
 
@@ -110,12 +137,20 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UCameraComponent> Camera;
 
+	UPROPERTY()
+	TObjectPtr<APlayerCameraManager> CameraManager;
+
 	/* States */
 	EWeaponState WeaponState { EWeaponState::EWS_Unequipped };
 	ECombatState CombatState { ECombatState::ECS_Free };
 	EActionState ActionState { EActionState::EAS_Unoccupied };
-	ESpeedState SpeedState { ESpeedState::ESS_Running };
 
+	UPROPERTY(EditAnywhere, Category = "Movement", meta = (AllowPrivateAccess = true))
+	float EngagedWalkSpeed { 400.f };
+	
+	UPROPERTY(EditAnywhere, Category = "Movement", meta = (AllowPrivateAccess = true))
+	float FreeWalkSpeed { 600.f };
+	
 	/* Animation */
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TArray<TObjectPtr<UAnimMontage>> ComboMontages;
@@ -125,6 +160,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> UnequipMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TObjectPtr<UAnimMontage> DodgeMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	FName SheathSocketName;
@@ -137,6 +175,13 @@ public:
 	 * Functions
 	 */
 
+	/* Combat */
+	void EquipWeapon();
+	void FinishEquipping();
+	void SaveAttack();
+	void ResetCombo();
+	void DodgeEnd();
+
 	/* States */
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE EWeaponState GetWeaponState() const { return WeaponState; }
@@ -147,13 +192,11 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE EActionState GetActionState() const { return ActionState; }
 
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE ESpeedState GetSpeedState() const { return SpeedState; }
-
 	bool IsFullBody();
 	bool IsUpperBody();
 	bool IsAttacking() const;
 	bool IsDodging() const;
 	bool IsEquipping() const;
+	bool IsEngaged();
 
 };

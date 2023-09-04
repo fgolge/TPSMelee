@@ -2,6 +2,8 @@
 
 
 #include "Characters/Enemy/BaseEnemyAnimInstance.h"
+
+#include "KismetAnimationLibrary.h"
 #include "Characters/Enemy/BaseEnemy.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -25,6 +27,7 @@ void UBaseEnemyAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	if(BaseEnemy && CharacterMovementComponent)
 	{
 		GroundSpeed = UKismetMathLibrary::VSizeXY(CharacterMovementComponent->Velocity);
+		Direction = UKismetAnimationLibrary::CalculateDirection(CharacterMovementComponent->Velocity, BaseEnemy->GetActorRotation());
 		// EnemyActionState = BaseEnemy->GetEnemyActionState();
 	}
 }

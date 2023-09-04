@@ -35,6 +35,9 @@ private:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
 	float GroundSpeed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
+	float Direction;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EEnemyActionState EnemyActionState;

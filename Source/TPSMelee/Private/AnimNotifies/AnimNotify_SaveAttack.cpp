@@ -2,13 +2,17 @@
 
 
 #include "AnimNotifies/AnimNotify_SaveAttack.h"
-#include "Interfaces/Interface_Character.h"
+#include "Characters/Player/BasePlayer.h"
 
 void UAnimNotify_SaveAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                     const FAnimNotifyEventReference& EventReference)
 {
-	if(MeshComp->GetOwner()->Implements<UInterface_Character>())
+	if(MeshComp->GetOwner())
 	{
-		IInterface_Character::Execute_SaveAttack(MeshComp->GetOwner());
+		ABasePlayer* PlayerCharacter = Cast<ABasePlayer>(MeshComp->GetOwner());
+		if(PlayerCharacter)
+		{
+			PlayerCharacter->SaveAttack();
+		}
 	}
 }

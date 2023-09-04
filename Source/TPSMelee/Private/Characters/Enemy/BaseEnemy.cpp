@@ -10,4 +10,7 @@ ABaseEnemy::ABaseEnemy()
 void ABaseEnemy::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Tags.Add("Enemy");
+	SpawnWeapon(WeaponSocketName);
 }
