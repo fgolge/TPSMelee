@@ -5,6 +5,7 @@
 #include "ActorComponents/AttributeComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "MotionWarpingComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Items/Weapons/Weapon.h"
 
@@ -37,18 +38,76 @@ void ABaseCharacter::SpawnWeapon(FName SocketName)
 	}
 }
 
+void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+	if(IsAlive() && Hitter)
+	{
+		DirectionalHitReact(Hitter->GetActorLocation());
+	}
+	else
+	{
+		Die();
+	}
+
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+	// hit sound
+	// hit particles
+	// camera shake
+}
+
+void ABaseCharacter::Die()
+{
+	PlayMontage(DeathMontage);
+	DisableMeshCollision();
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABaseCharacter::PlayMontage(UAnimMontage* Montage)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if(AnimInstance && Montage)
+	{
+		AnimInstance->Montage_Play(Montage);
+	}
+}
+
+void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
+{
+	const FVector Forward = GetActorForwardVector();
+	// Impact's Z component was adjusted so height wouldn't affect the hit
+	const FVector ImpactCoplanar(ImpactPoint.X, ImpactPoint.Y, GetActorLocation().Z);
+	const FVector ToHit = (ImpactCoplanar - GetActorLocation()).GetSafeNormal();
+
+	// Forward * ToHit = |Forward||ToHit| * cost(Theta)
+	// |Forward| = 1, |ToHit| = 1, so; Forward * ToHit = cos(Theta)
+	const double CosTheta = FVector::DotProduct(Forward, ToHit);
+	// Take the inverse cosine (arc-cos) of cos(Theta) to get Theta
+	double Theta = FMath::Acos(CosTheta);
+	// Convert from radians to degrees
+	Theta = FMath::RadiansToDegrees(Theta);
+
+	// If CrossProduct points down, Theta should be negative
+	const FVector CrossProduct = FVector::CrossProduct(Forward,ToHit);
+	if(CrossProduct.Z < 0)
+	{
+		Theta *= -1.f;
+	}
+
+	FName Section("FromLeft");
+	if(Theta >= -45.f && Theta <= 135.f)
+	{
+		Section = FName("FromRight");
+	}
+
+	PlayHitReactMontage(Section);
+}
+
 void ABaseCharacter::SetWarpTarget()
 {
 	if(MotionWarpingComponent && TargetActor)
 	{
 		const FVector TargetLocation = CalculateLocationWithOffset();
-		const FTransform NewTransform = FTransform(GetActorRotation(), TargetLocation, GetActorScale());
-		
-		//MotionWarpingComponent->AddOrUpdateWarpTargetFromTransform(WarpTargetName, NewTransform);
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromLocation(WarpTargetName, TargetLocation);
-		
-		float DistToTarget = (TargetLocation - GetActorLocation()).Length();
-		UE_LOG(LogTemp, Warning, TEXT("%f"), DistToTarget);
 	}
 }
 
@@ -73,10 +132,64 @@ FVector ABaseCharacter::CalculateLocationWithOffset()
 			WarpDistance = Distance.GetSafeNormal() * MaxWarpDistance;
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("Offset Length: %f"), Offset.Length());
-		
 		return GetActorLocation() + WarpDistance;
 	}
 	
 	return FVector();
+}
+
+void ABaseCharacter::PlayHitReactMontage(const FName& Section)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if(AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		AnimInstance->Montage_JumpToSection(Section, HitReactMontage);
+	}
+}
+
+bool ABaseCharacter::IsAlive()
+{
+	return Attributes && Attributes->IsAlive();
+}
+
+void ABaseCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
+{
+	if(Weapon && Weapon->GetWeaponBox())
+	{
+		Weapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
+		Weapon->IgnoredActors.Empty();
+	}
+}
+
+float ABaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	HandleDamage(DamageAmount);
+
+	return DamageAmount;
+}
+
+void ABaseCharacter::HandleDamage(float DamageAmount)
+{
+	if(Attributes)
+	{
+		Attributes->ReceiveDamage(DamageAmount);
+	}
+}
+
+void ABaseCharacter::DisableMeshCollision()
+{
+	if(GetMesh())
+	{
+		GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+void ABaseCharacter::DisableCapsule()
+{
+	if(GetCapsuleComponent())
+	{
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 }

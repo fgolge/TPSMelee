@@ -63,7 +63,6 @@ private:
 	void RotateCameraToTarget(float DeltaTime);
 	
 	/* Animation */
-	void PlayMontage(UAnimMontage* Montage);
 	void AttachWeaponToSocket(FName SocketName);
 
 	/* States */

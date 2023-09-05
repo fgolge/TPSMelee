@@ -21,5 +21,21 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+private:
+	/**
+	 * Variables
+	 */
+
+	/* Combat */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	float TimeToDestroyDeadActor { 8.f };
+	
+protected:
+	/**
+	 * Functions
+	 */
+
+	/* Combat */
+	virtual void Die() override;
 
 };

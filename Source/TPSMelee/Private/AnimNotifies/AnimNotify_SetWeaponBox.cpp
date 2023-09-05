@@ -8,16 +8,14 @@
 void UAnimNotify_SetWeaponBox::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 											   const FAnimNotifyEventReference& EventReference)
 {
-	ABaseCharacter* BaseCharacter = Cast<ABaseCharacter>(MeshComp->GetOwner());
-	if(!BaseCharacter) return;
-
-	if(bShouldEnable)
+	if(MeshComp->GetOwner())
 	{
-		// BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::QueryOnly);
-	}
-	else
-	{
-		// BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+		ABaseCharacter* BaseCharacter = Cast<ABaseCharacter>(MeshComp->GetOwner());
+		if(BaseCharacter)
+		{
+			bShouldEnable ? BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::QueryOnly) :
+				BaseCharacter->SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 	}
 	
 }

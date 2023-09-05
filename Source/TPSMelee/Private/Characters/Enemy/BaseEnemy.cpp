@@ -14,3 +14,10 @@ void ABaseEnemy::BeginPlay()
 	Tags.Add("Enemy");
 	SpawnWeapon(WeaponSocketName);
 }
+
+void ABaseEnemy::Die()
+{
+	Super::Die();
+
+	SetLifeSpan(TimeToDestroyDeadActor);
+}

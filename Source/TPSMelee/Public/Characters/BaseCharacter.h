@@ -27,16 +27,27 @@ private:
 	 * Functions
 	 */
 
+	/* Combat */
+	void DisableMeshCollision();
+	void DisableCapsule();
+
 	/* Animation */
 	FVector CalculateLocationWithOffset();
+	void PlayHitReactMontage(const FName& Section);
 	
 	/**
 	 * Variables
 	 */
 
 	/* Combat */
-	UPROPERTY(EditAnywhere,	Category = "Combat")
+	UPROPERTY(EditDefaultsOnly,	Category = "Combat")
 	TSubclassOf<AWeapon> WeaponClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TObjectPtr<UAnimMontage> HitReactMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TObjectPtr<UAnimMontage> DeathMontage;
 
 	/* Components */
 	UPROPERTY(VisibleAnywhere)
@@ -49,6 +60,14 @@ protected:
 	
 	/* Combat */
 	void SpawnWeapon(FName SocketName);
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
+	void DirectionalHitReact(const FVector& ImpactPoint);
+	void HandleDamage(float DamageAmount);
+	bool IsAlive();
+	virtual void Die();
+
+	/* Animation */
+	void PlayMontage(UAnimMontage* Montage);
 
 	/**
 	 * Variables
@@ -82,6 +101,10 @@ public:
 	/**
 	 * Functions
 	 */
+
+	/* Combat */
+	void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	/* Animation */
 	void SetWarpTarget();

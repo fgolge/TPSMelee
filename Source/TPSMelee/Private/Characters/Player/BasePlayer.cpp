@@ -215,15 +215,6 @@ void ABasePlayer::Dodge()
 	if(DodgeMontage) PlayMontage(DodgeMontage);
 }
 
-void ABasePlayer::PlayMontage(UAnimMontage* Montage)
-{
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if(AnimInstance && Montage)
-	{
-		AnimInstance->Montage_Play(Montage);
-	}
-}
-
 void ABasePlayer::SetWeaponState(EWeaponState State)
 {
 	WeaponState = State;
