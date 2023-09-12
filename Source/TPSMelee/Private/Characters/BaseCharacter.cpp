@@ -71,6 +71,14 @@ void ABaseCharacter::PlayMontage(UAnimMontage* Montage)
 	}
 }
 
+void ABaseCharacter::SetSpeed(const float Value)
+{
+	if(GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = Value;
+	}
+}
+
 void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
 {
 	const FVector Forward = GetActorForwardVector();
@@ -102,11 +110,11 @@ void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
 	PlayHitReactMontage(Section);
 }
 
-void ABaseCharacter::SetWarpTarget()
+void ABaseCharacter::SetWarpTarget(float MaxWarpDistance)
 {
 	if(MotionWarpingComponent && TargetActor)
 	{
-		const FVector TargetLocation = CalculateLocationWithOffset();
+		const FVector TargetLocation = CalculateLocationWithOffset(MaxWarpDistance);
 		MotionWarpingComponent->AddOrUpdateWarpTargetFromLocation(WarpTargetName, TargetLocation);
 	}
 }
@@ -119,7 +127,7 @@ void ABaseCharacter::ClearWarpTarget()
 	}
 }
 
-FVector ABaseCharacter::CalculateLocationWithOffset()
+FVector ABaseCharacter::CalculateLocationWithOffset(float MaxWarpDistance)
 {
 	if(TargetActor)
 	{
@@ -168,6 +176,16 @@ float ABaseCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageE
 	HandleDamage(DamageAmount);
 
 	return DamageAmount;
+}
+
+void ABaseCharacter::SetTargetActor(AActor* Actor)
+{
+	TargetActor = Actor;
+}
+
+void ABaseCharacter::ClearTargetActor()
+{
+	TargetActor = nullptr;
 }
 
 void ABaseCharacter::HandleDamage(float DamageAmount)

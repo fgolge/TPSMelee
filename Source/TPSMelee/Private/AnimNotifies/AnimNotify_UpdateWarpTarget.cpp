@@ -12,7 +12,7 @@ void UAnimNotify_UpdateWarpTarget::Notify(USkeletalMeshComponent* MeshComp, UAni
 		ABaseCharacter* PlayerCharacter = Cast<ABaseCharacter>(MeshComp->GetOwner());
 		if(PlayerCharacter)
 		{
-			PlayerCharacter->SetWarpTarget();
+			PlayerCharacter->SetWarpTarget(MaxWarpDistance);
 		}
 	}
 }

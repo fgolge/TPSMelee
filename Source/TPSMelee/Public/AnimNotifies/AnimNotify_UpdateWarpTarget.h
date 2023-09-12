@@ -16,5 +16,8 @@ class TPSMELEE_API UAnimNotify_UpdateWarpTarget : public UAnimNotify
 
 public:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AnimNotify")
+	float MaxWarpDistance { 300.f };
 	
 };

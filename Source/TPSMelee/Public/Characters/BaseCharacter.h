@@ -32,7 +32,7 @@ private:
 	void DisableCapsule();
 
 	/* Animation */
-	FVector CalculateLocationWithOffset();
+	FVector CalculateLocationWithOffset(float MaxWarpDistance);
 	void PlayHitReactMontage(const FName& Section);
 	
 	/**
@@ -69,6 +69,9 @@ protected:
 	/* Animation */
 	void PlayMontage(UAnimMontage* Montage);
 
+	/* States */
+	void SetSpeed(const float Value);
+
 	/**
 	 * Variables
 	 */
@@ -92,9 +95,6 @@ protected:
 	FName WeaponSocketName;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float MaxWarpDistance { 300.f };
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
 	float WarpOffset { 75.f };
 
 public:
@@ -105,9 +105,11 @@ public:
 	/* Combat */
 	void SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled);
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	void SetTargetActor(AActor* Actor);
+	void ClearTargetActor();
 
 	/* Animation */
-	void SetWarpTarget();
+	void SetWarpTarget(float MaxWarpDistance);
 	void ClearWarpTarget();
 
 };

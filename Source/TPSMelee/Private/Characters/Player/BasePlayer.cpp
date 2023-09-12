@@ -194,7 +194,6 @@ void ABasePlayer::Attack()
 	if(ComboMontages[AttackIndex])
 	{
 		//SetActorRotation(FRotator(0.f, GetController()->GetControlRotation().Yaw, 0.f));
-		SetWarpTarget();
 		bIsFullBody = true;
 		SetActionState(EActionState::EAS_Attacking);
 		PlayMontage(ComboMontages[AttackIndex]);
@@ -227,13 +226,13 @@ void ABasePlayer::SetCombatState(ECombatState State)
 	switch(State)
 	{
 	case ECombatState::ECS_Engaged:
-		GetCharacterMovement()->MaxWalkSpeed = EngagedWalkSpeed;
+		SetSpeed(EngagedWalkSpeed);
 		break;
 	case ECombatState::ECS_Free:
-		GetCharacterMovement()->MaxWalkSpeed = FreeWalkSpeed;
+		SetSpeed(FreeWalkSpeed);
 		break;
 	default:
-			GetCharacterMovement()->MaxWalkSpeed = FreeWalkSpeed;
+			SetSpeed(FreeWalkSpeed);
 		break;
 	}
 }
