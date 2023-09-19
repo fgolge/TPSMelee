@@ -32,10 +32,7 @@ void UBTService_UpdateLocationOfTarget::TickNode(UBehaviorTreeComponent& OwnerCo
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetAIOwner()->GetBlackboardComponent();
-	if (!BlackboardComp)
-	{
-		return;
-	}
+	if (!BlackboardComp) return;
 
 	AActor* TargetToUpdate = Cast<AActor>(BlackboardComp->GetValueAsObject(TargetActor.SelectedKeyName));
 	if(TargetToUpdate)

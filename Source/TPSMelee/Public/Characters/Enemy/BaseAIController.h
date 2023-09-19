@@ -33,15 +33,20 @@ private:
 	 */
 
 	/* Combat */
-	void Chase(AActor* Actor);
 	bool ShouldChase(FAIStimulus Stimulus);
 	void Investigate();
-	bool ShouldInvestigate(FAIStimulus Stimulus);
+	bool ShouldInvestigate();
 	void ChaseTimerHandler();
 	void EngageTimerHandler();
-	void SetTargetActor(AActor* Actor);
 	void Engage();
-
+	bool ShouldEngage();
+	bool ShouldDisengage();
+	bool ShouldFallBack();
+	void SetTargetActor(AActor* Actor);
+	void FocusOnTarget(bool bShouldFocus);
+	void SetEnemyControl(bool bIsFocused);
+	bool IsAttacking();
+	
 	/* Debug */
 	void DrawBoundaries() const;
 	
@@ -53,7 +58,7 @@ private:
 	float DistanceToTarget { 9999999.f };
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
-	float TimerForDistanceCheck { .1f };
+	float TimeRateForDistanceCheck { .1f };
 
 	UPROPERTY(EditAnywhere, Category = "Combat | Chasing")
 	float ChaseToEngageDistance { 300.f };
@@ -71,8 +76,6 @@ private:
 	float MinEngageDistance { 400.f };
 
 	FTimerHandle DistanceTimer { FTimerHandle() };
-	FTimerHandle AttackTimer { FTimerHandle() };
-	FTimerHandle DodgeTimer { FTimerHandle() };
 	
 	/* Components */
 	UPROPERTY(VisibleAnywhere)
@@ -97,6 +100,13 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	FName ActionStateKeyName {FName("ActionState")};
 
+	UPROPERTY(EditDefaultsOnly, Category = "AI")
+	FName EngagedStateKeyName {FName("EngagedState")};
+
+	/* State */
+	EEnemyActionState ActionState { EEnemyActionState::EEAS_Patrolling };
+	EEnemyEngagedState EngagedState { EEnemyEngagedState::EEAS_Strafe };
+
 	/* Other */
 	UPROPERTY()
 	TObjectPtr<ABaseEnemy> ControlledPawn;
@@ -113,10 +123,34 @@ public:
 	 * Functions
 	 */
 
-	UFUNCTION(BlueprintCallable)
-	void SetBlackboardState(EEnemyActionState NewState);
+	/* Combat */
+	void Chase(AActor* Actor);
+	bool IsStrafing();
 	
 	UFUNCTION()
 	void TargetSpotted(AActor* Actor, FAIStimulus Stimulus);
+
+	UFUNCTION(BlueprintCallable)
+	void Patrol();
+
+	/* Blackboard */
+	UFUNCTION(BlueprintCallable)
+	void SetActionState(EEnemyActionState NewState);
+
+	UFUNCTION(BlueprintCallable)
+	void SetEngagedState(EEnemyEngagedState NewState);
+
+	UFUNCTION(BlueprintCallable)
+	float GetDistanceToTarget();
+
+	/* Debug */
+	UFUNCTION(BlueprintCallable)
+	EEnemyActionState GetActionState();
+	
+	UFUNCTION(BlueprintCallable)
+	EEnemyEngagedState GetEngagedState();
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE FName GetTargetName() const { return TargetActor.GetFName(); }
 
 };

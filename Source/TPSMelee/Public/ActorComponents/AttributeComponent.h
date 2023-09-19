@@ -30,9 +30,9 @@ private:
 
 public:
 	void ReceiveDamage(float Damage);
-	float GetHealthPercent();
 	void UseStamina(float StaminaCost);
 	float GetStaminaPercent();
 	void RegenStamina(float DeltaTime);
 	bool IsAlive();
+	float GetHealthPercent();
 };

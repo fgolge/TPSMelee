@@ -31,7 +31,6 @@ private:
 	float TimeToDestroyDeadActor { 8.f };
 
 	/* States */
-	EEnemyActionState ActionState { EEnemyActionState::EEAS_Patrolling };
 	EEnemySpeedState SpeedState { EEnemySpeedState::EESS_PatrolSpeed };
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
@@ -44,8 +43,11 @@ private:
 	float ChaseWalkSpeed { 300.f };
 
 	UPROPERTY(EditAnywhere, Category = "Movement")
-	float AttackWalkSpeed { 100.f };
-	
+	float EngagedWalkSpeed { 100.f };
+
+	/* AI */
+	FVector PatrolCenter;
+	bool bIsAttacking { false };
 	
 protected:
 	/**
@@ -54,6 +56,8 @@ protected:
 
 	/* Combat */
 	virtual void Die() override;
+	virtual void Destroyed() override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 
 public:
 	/**
@@ -62,11 +66,19 @@ public:
 
 	/* States */
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE EEnemyActionState GetEnemyActionState() const { return ActionState; }
-
-	void SetEnemyActionState(EEnemyActionState NewState);
-
-	UFUNCTION(BlueprintCallable)
 	void SetEnemySpeedState(EEnemySpeedState NewState);
 
+	FORCEINLINE FVector GetPatrolCenter() const { return PatrolCenter; }
+
+	/**
+	 * Variables
+	 */
+
+	/* AI */
+	UFUNCTION(BlueprintCallable)
+	bool GetIsAttacking();
+
+	UFUNCTION(BlueprintCallable)
+	void SetIsAttacking(bool Value);
+	
 };

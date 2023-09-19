@@ -48,6 +48,7 @@ private:
 	void Dodge();
 	void SetAttackIndex();
 	void ResetAttackIndex();
+	void CancelAttack();
 	bool CanEquip();
 	bool CanAttack();
 	bool CanDodge();
@@ -168,6 +169,14 @@ private:
 
 	bool bIsFullBody { false };
 	bool bIsUpperBody { false };
+
+protected:
+	/**
+	 * Functions
+	 */
+
+	/* Combat */
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 
 public:
 	/**

@@ -2,7 +2,10 @@
 
 
 #include "Items/Weapons/Weapon.h"
+
+#include "Characters/Enemy/BaseAIController.h"
 #include "Components/BoxComponent.h"
+#include "GameFramework/Character.h"
 #include "Interfaces/Interface_Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -30,11 +33,12 @@ void AWeapon::BeginPlay()
 	WeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnBoxOverlap);
 }
 
-void AWeapon::Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator)
+void AWeapon::Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator, float Damage)
 {
 	SetOwner(NewOwner);
 	SetInstigator(NewInstigator);
 	AttachMeshToSocket(InParent, InSocketName);
+	WeaponDamage = Damage;
 }
 
 void AWeapon::AttachMeshToSocket(USceneComponent* InParent, FName InSocketName)
@@ -57,7 +61,7 @@ void AWeapon::OnBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	if(BoxHit.GetActor())
 	{
 		if(IsActorSameType(BoxHit.GetActor())) return;
-		UGameplayStatics::ApplyDamage(BoxHit.GetActor(), Damage, GetInstigator()->GetController(),
+		UGameplayStatics::ApplyDamage(BoxHit.GetActor(), WeaponDamage, GetInstigator()->GetController(),
 			this, UDamageType::StaticClass());
 		ExecuteGetHit(BoxHit);
 	}
@@ -102,8 +106,18 @@ bool AWeapon::IsActorSameType(AActor* OtherActor)
 void AWeapon::ExecuteGetHit(FHitResult BoxHit)
 {
 	IInterface_Character* CharacterInterface = Cast<IInterface_Character>(BoxHit.GetActor());
-	if(CharacterInterface)
+	if(CharacterInterface && BoxHit.GetActor() && GetOwner())
 	{
 		CharacterInterface->Execute_GetHit(BoxHit.GetActor(), BoxHit.ImpactPoint, GetOwner());
+		
+		ACharacter* HitCharacter = Cast<ACharacter>(BoxHit.GetActor());
+		if(HitCharacter)
+		{
+			ABaseAIController* AIController = Cast<ABaseAIController>(HitCharacter->GetController());
+			if(AIController)
+			{
+				AIController->Chase(GetOwner());
+			}
+		}
 	}
 }

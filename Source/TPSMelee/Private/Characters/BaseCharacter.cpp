@@ -33,18 +33,14 @@ void ABaseCharacter::SpawnWeapon(FName SocketName)
 		Weapon = World->SpawnActor<AWeapon>(WeaponClass);
 		if(Weapon)
 		{
-			Weapon->Equip(GetMesh(), SocketName, this, this);
+			Weapon->Equip(GetMesh(), SocketName, this, this, WeaponDamage);
 		}
 	}
 }
 
 void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 {
-	if(IsAlive() && Hitter)
-	{
-		DirectionalHitReact(Hitter->GetActorLocation());
-	}
-	else
+	if(!IsAlive())
 	{
 		Die();
 	}
@@ -82,19 +78,12 @@ void ABaseCharacter::SetSpeed(const float Value)
 void ABaseCharacter::DirectionalHitReact(const FVector& ImpactPoint)
 {
 	const FVector Forward = GetActorForwardVector();
-	// Impact's Z component was adjusted so height wouldn't affect the hit
 	const FVector ImpactCoplanar(ImpactPoint.X, ImpactPoint.Y, GetActorLocation().Z);
 	const FVector ToHit = (ImpactCoplanar - GetActorLocation()).GetSafeNormal();
-
-	// Forward * ToHit = |Forward||ToHit| * cost(Theta)
-	// |Forward| = 1, |ToHit| = 1, so; Forward * ToHit = cos(Theta)
 	const double CosTheta = FVector::DotProduct(Forward, ToHit);
-	// Take the inverse cosine (arc-cos) of cos(Theta) to get Theta
 	double Theta = FMath::Acos(CosTheta);
-	// Convert from radians to degrees
 	Theta = FMath::RadiansToDegrees(Theta);
 
-	// If CrossProduct points down, Theta should be negative
 	const FVector CrossProduct = FVector::CrossProduct(Forward,ToHit);
 	if(CrossProduct.Z < 0)
 	{
@@ -125,6 +114,32 @@ void ABaseCharacter::ClearWarpTarget()
 	{
 		MotionWarpingComponent->RemoveWarpTarget(WarpTargetName);
 	}
+}
+
+FVector ABaseCharacter::GetWarpTargetLocation()
+{
+	if(MotionWarpingComponent)
+	{
+		const FMotionWarpingTarget* WarpingTarget = MotionWarpingComponent->FindWarpTarget(WarpTargetName);
+		if(WarpingTarget)
+		{
+			return WarpingTarget->Location;
+		}
+
+		return FVector::ZeroVector;
+	}
+	
+	return FVector();
+}
+
+float ABaseCharacter::GetHealthPercent()
+{
+	if(Attributes)
+	{
+		return Attributes->GetHealthPercent();
+	}
+
+	return 0.f;
 }
 
 FVector ABaseCharacter::CalculateLocationWithOffset(float MaxWarpDistance)

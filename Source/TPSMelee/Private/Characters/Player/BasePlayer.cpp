@@ -141,7 +141,18 @@ void ABasePlayer::ReachForWeapon()
 	}
 }
 
-/* Once the character reaches the weapon, it sets states and attaches mesh to the socket */
+void ABasePlayer::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+	if(IsAlive() && Hitter)
+	{
+		CancelAttack();
+		bIsUpperBody = true;
+		DirectionalHitReact(Hitter->GetActorLocation());
+	}
+	
+	Super::GetHit_Implementation(ImpactPoint, Hitter);
+}
+
 void ABasePlayer::EquipWeapon()
 {
 	if(!IsEquipped())
@@ -194,6 +205,7 @@ void ABasePlayer::Attack()
 	if(ComboMontages[AttackIndex])
 	{
 		//SetActorRotation(FRotator(0.f, GetController()->GetControlRotation().Yaw, 0.f));
+		bIsUpperBody = false;
 		bIsFullBody = true;
 		SetActionState(EActionState::EAS_Attacking);
 		PlayMontage(ComboMontages[AttackIndex]);
@@ -209,6 +221,7 @@ void ABasePlayer::Dodge()
 	
 	RotateActorForDodge();
 	ResetAttackIndex();
+	bIsUpperBody = false;
 	bIsFullBody = true;
 	SetActionState(EActionState::EAS_Dodge);
 	if(DodgeMontage) PlayMontage(DodgeMontage);
@@ -272,6 +285,13 @@ void ABasePlayer::SetAttackIndex()
 void ABasePlayer::ResetAttackIndex()
 {
 	AttackIndex = 0;
+}
+
+void ABasePlayer::CancelAttack()
+{
+	SetActionState(EActionState::EAS_Unoccupied);
+	ResetAttackIndex();
+	bIsFullBody = false;
 }
 
 void ABasePlayer::AttachWeaponToSocket(FName SocketName)

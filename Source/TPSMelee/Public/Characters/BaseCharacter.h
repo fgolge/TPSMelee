@@ -49,6 +49,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float WeaponDamage { 10.f };
+
 	/* Components */
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UMotionWarpingComponent> MotionWarpingComponent;
@@ -63,7 +66,10 @@ protected:
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	void DirectionalHitReact(const FVector& ImpactPoint);
 	void HandleDamage(float DamageAmount);
+
+	UFUNCTION(BlueprintCallable)
 	bool IsAlive();
+
 	virtual void Die();
 
 	/* Animation */
@@ -112,4 +118,14 @@ public:
 	void SetWarpTarget(float MaxWarpDistance);
 	void ClearWarpTarget();
 
+	/* Debug */
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE FName GetTargetActorName() const { return TargetActor.GetFName(); }
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetWarpTargetLocation();
+
+	UFUNCTION(BlueprintCallable)
+	float GetHealthPercent();
+	
 };

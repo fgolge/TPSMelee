@@ -6,6 +6,7 @@
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Characters/Enemy/BaseEnemy.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 
@@ -51,7 +52,7 @@ void ABaseAIController::OnPossess(APawn* InPawn)
 		BehaviorTreeComponent->StartTree(*BehaviorTree);
 	}
 
-	SetBlackboardState(EEnemyActionState::EEAS_Patrolling);
+	Patrol();
 }
 
 void ABaseAIController::TargetSpotted(AActor* Actor, FAIStimulus Stimulus)
@@ -59,10 +60,10 @@ void ABaseAIController::TargetSpotted(AActor* Actor, FAIStimulus Stimulus)
 	if(!Actor) return;
 	if(!Actor->IsA(ABaseCharacter::StaticClass())) return;
 	if(!BlackboardComponent) return;
+	//if(IsAttacking()) return;
 
 	if(ShouldChase(Stimulus))
 	{
-		ControlledPawn->SetTargetActor(Actor);
 		Chase(Actor);
 	}
 	else if(DistanceToTarget > BackwardSensingDistance)
@@ -70,7 +71,13 @@ void ABaseAIController::TargetSpotted(AActor* Actor, FAIStimulus Stimulus)
 		GetWorldTimerManager().ClearTimer(DistanceTimer);
 		Investigate();
 	}
-	
+}
+
+void ABaseAIController::Patrol()
+{
+	DistanceToTarget = 9999999.f;
+	ControlledPawn->SetEnemySpeedState(EEnemySpeedState::EESS_PatrolSpeed);
+	SetActionState(EEnemyActionState::EEAS_Patrolling);
 }
 
 void ABaseAIController::Chase(AActor* Actor)
@@ -78,50 +85,41 @@ void ABaseAIController::Chase(AActor* Actor)
 	if(Actor)
 	{
 		SetTargetActor(Actor);
-		SetBlackboardState(EEnemyActionState::EEAS_Chasing);
-		GetWorldTimerManager().SetTimer(DistanceTimer, this, &ABaseAIController::ChaseTimerHandler, TimerForDistanceCheck, true);
+		ControlledPawn->SetEnemySpeedState(EEnemySpeedState::EESS_ChaseSpeed);
+		SetActionState(EEnemyActionState::EEAS_Chasing);
+		GetWorldTimerManager().SetTimer(DistanceTimer, this, &ABaseAIController::ChaseTimerHandler, TimeRateForDistanceCheck, true);
 	}
 }
 
 void ABaseAIController::Investigate()
 {
-	SetBlackboardState(EEnemyActionState::EEAS_Investigating);
+	ControlledPawn->SetEnemySpeedState(EEnemySpeedState::EESS_InvestigateSpeed);
+	SetActionState(EEnemyActionState::EEAS_Investigating);
 	SetTargetActor(nullptr);
+	ControlledPawn->ClearTargetActor();
+	FocusOnTarget(false);
 }
 
 void ABaseAIController::Engage()
 {
-	GetWorldTimerManager().SetTimer(DistanceTimer, this, &ABaseAIController::EngageTimerHandler, TimerForDistanceCheck,true);
-	SetBlackboardState(EEnemyActionState::EEAS_Attacking);
-}
-
-bool ABaseAIController::ShouldChase(FAIStimulus Stimulus)
-{
-	return Stimulus.WasSuccessfullySensed();
-}
-
-void ABaseAIController::SetBlackboardState(EEnemyActionState NewState)
-{
-	if(BlackboardComponent && ControlledPawn)
-	{
-		ControlledPawn->SetEnemyActionState(NewState);
-		BlackboardComponent->SetValueAsEnum(ActionStateKeyName, static_cast<uint8>(NewState));
-	}
+	GetWorldTimerManager().SetTimer(DistanceTimer, this, &ABaseAIController::EngageTimerHandler, TimeRateForDistanceCheck,true);
+	FocusOnTarget(true);
+	ControlledPawn->SetEnemySpeedState(EEnemySpeedState::EESS_EngagedSpeed);
+	SetActionState(EEnemyActionState::EEAS_Engaged);
+	SetEngagedState(EEnemyEngagedState::EEAS_Strafe);
 }
 
 void ABaseAIController::ChaseTimerHandler()
 {
 	DistanceToTarget = FVector::Distance(ControlledPawn->GetActorLocation(), TargetActor->GetActorLocation());
 	
-	if(DistanceToTarget < ChaseToEngageDistance)
+	if(ShouldEngage())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Engaged"));
 		GetWorldTimerManager().ClearTimer(DistanceTimer);
 		Engage();
 	}
-	else if(DistanceToTarget > MaxChaseDistance)
+	else if(ShouldInvestigate())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Investigating"));
 		GetWorldTimerManager().ClearTimer(DistanceTimer);
 		Investigate();
 	}
@@ -130,17 +128,18 @@ void ABaseAIController::ChaseTimerHandler()
 void ABaseAIController::EngageTimerHandler()
 {
 	DistanceToTarget = FVector::Distance(ControlledPawn->GetActorLocation(), TargetActor->GetActorLocation());
+
+	if(IsAttacking()) return;
 	
-	if(TargetActor && DistanceToTarget > MaxEngageDistance)
+	if(TargetActor && ShouldDisengage())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Back To Chasing"));
 		GetWorldTimerManager().ClearTimer(DistanceTimer);
 		Chase(TargetActor);
+		FocusOnTarget(false);
 	}
-	else if(DistanceToTarget < MinEngageDistance)
+	else if(ShouldFallBack())
 	{
-		// Fall back
-		UE_LOG(LogTemp, Warning, TEXT("Falling Back"));
+		SetEngagedState(EEnemyEngagedState::EEAS_Strafe);
 	}
 }
 
@@ -149,8 +148,100 @@ void ABaseAIController::SetTargetActor(AActor* Actor)
 	if(Actor)
 	{
 		TargetActor = Actor;
+		ControlledPawn->SetTargetActor(Actor);
 		BlackboardComponent->SetValueAsObject(TargetActorKeyName, Actor);
 	}
+}
+
+void ABaseAIController::FocusOnTarget(bool bShouldFocus)
+{
+	if(bShouldFocus && TargetActor)
+	{
+		SetEnemyControl(true);
+		SetFocus(TargetActor);
+	}
+	else
+	{
+		SetEnemyControl(false);
+		ClearFocus(EAIFocusPriority::Default);
+	}
+}
+
+void ABaseAIController::SetEnemyControl(bool bIsFocused)
+{
+	if(ControlledPawn && ControlledPawn->GetCharacterMovement())
+	{
+		ControlledPawn->GetCharacterMovement()->bOrientRotationToMovement = !bIsFocused;
+		ControlledPawn->bUseControllerRotationYaw = bIsFocused;
+	}
+}
+
+void ABaseAIController::SetActionState(EEnemyActionState NewState)
+{
+	if(BlackboardComponent && ControlledPawn)
+	{
+		ActionState = NewState;
+		BlackboardComponent->SetValueAsEnum(ActionStateKeyName, static_cast<uint8>(NewState));
+	}
+}
+
+void ABaseAIController::SetEngagedState(EEnemyEngagedState NewState)
+{
+	if(BlackboardComponent)
+	{
+		EngagedState = NewState;
+		BlackboardComponent->SetValueAsEnum(EngagedStateKeyName, static_cast<uint8>(NewState));
+	}
+}
+
+float ABaseAIController::GetDistanceToTarget()
+{
+	return DistanceToTarget;
+}
+
+EEnemyActionState ABaseAIController::GetActionState()
+{
+	return ActionState;
+}
+
+EEnemyEngagedState ABaseAIController::GetEngagedState()
+{
+	return EngagedState;
+}
+
+bool ABaseAIController::ShouldChase(FAIStimulus Stimulus)
+{
+	return Stimulus.WasSuccessfullySensed();
+}
+
+bool ABaseAIController::ShouldInvestigate()
+{
+	return TargetActor && DistanceToTarget > MaxChaseDistance;
+}
+
+bool ABaseAIController::ShouldEngage()
+{
+	return DistanceToTarget < ChaseToEngageDistance;
+}
+
+bool ABaseAIController::ShouldDisengage()
+{
+	return DistanceToTarget > MaxEngageDistance;
+}
+
+bool ABaseAIController::IsAttacking()
+{
+	return EngagedState == EEnemyEngagedState::EEAS_Attack;
+}
+
+bool ABaseAIController::ShouldFallBack()
+{
+	return DistanceToTarget < MinEngageDistance;
+}
+
+bool ABaseAIController::IsStrafing()
+{
+	return EngagedState == EEnemyEngagedState::EEAS_Strafe;
 }
 
 void ABaseAIController::DrawBoundaries() const

@@ -47,8 +47,7 @@ private:
 	TObjectPtr<USceneComponent> BoxTraceEnd;
 
 	/* Combat */
-	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
-	float Damage;
+	float WeaponDamage;
 
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	bool bShowDebugs = false;
@@ -73,7 +72,7 @@ public:
 	*/
 
 	/* Inventory */
-	void Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator);
+	void Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator, float Damage);
 	void AttachMeshToSocket(USceneComponent* InParent, FName InSocketName);
 
 	/* Other */
@@ -86,4 +85,8 @@ public:
 	/* Combat */
 	UPROPERTY()
 	TArray<AActor*> IgnoredActors;
+
+	/* Debug */
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE float GetWeaponDamage() const { return WeaponDamage; }
 };
