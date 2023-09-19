@@ -38,6 +38,9 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
 	float Direction;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
+	bool bIsDead;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EEnemyActionState EnemyActionState;

@@ -7,6 +7,8 @@
 #include "Interfaces/Interface_Character.h"
 #include "BaseCharacter.generated.h"
 
+DECLARE_DELEGATE(FOnCharacterDiedDelegate);
+
 class UAttributeComponent;
 class AWeapon;
 class UMotionWarpingComponent;
@@ -66,10 +68,6 @@ protected:
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	void DirectionalHitReact(const FVector& ImpactPoint);
 	void HandleDamage(float DamageAmount);
-
-	UFUNCTION(BlueprintCallable)
-	bool IsAlive();
-
 	virtual void Die();
 
 	/* Animation */
@@ -113,6 +111,9 @@ public:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	void SetTargetActor(AActor* Actor);
 	void ClearTargetActor();
+	
+	UFUNCTION(BlueprintCallable)
+	bool IsAlive();
 
 	/* Animation */
 	void SetWarpTarget(float MaxWarpDistance);
@@ -127,5 +128,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float GetHealthPercent();
+
+	/**
+	 * Variables
+	 */
+
+	/* Combat */
+	FOnCharacterDiedDelegate OnCharacterDied;
 	
 };

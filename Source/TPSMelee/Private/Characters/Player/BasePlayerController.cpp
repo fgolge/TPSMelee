@@ -2,6 +2,8 @@
 
 
 #include "Characters/Player/BasePlayerController.h"
+
+#include "Characters/Player/BasePlayer.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 
@@ -12,12 +14,26 @@ ABasePlayerController::ABasePlayerController()
 	StimuliSourceComponent->RegisterForSense(TSubclassOf<UAISense_Sight>());
 }
 
-void ABasePlayerController::BeginPlay()
+void ABasePlayerController::OnPossess(APawn* InPawn)
 {
-	Super::BeginPlay();
+	Super::OnPossess(InPawn);
 	
 	TeamId = FGenericTeamId(0);
 	SetGenericTeamId(TeamId);
+
+	ABasePlayer* BasePlayer = Cast<ABasePlayer>(GetPawn());
+	if(BasePlayer)
+	{
+		BasePlayer->OnCharacterDied.BindUObject(this, &ABasePlayerController::HandlePlayerDeath);
+	}
+}
+
+void ABasePlayerController::HandlePlayerDeath()
+{
+	if(StimuliSourceComponent)
+	{
+		StimuliSourceComponent->UnregisterFromSense(TSubclassOf<UAISense_Sight>());
+	}
 }
 
 FGenericTeamId ABasePlayerController::GetGenericTeamId() const

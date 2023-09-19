@@ -21,8 +21,16 @@ public:
 	ABasePlayerController();
 
 protected:
-	virtual void BeginPlay() override;
+	virtual void OnPossess(APawn* InPawn) override;
 
+private:
+	/**
+	 * Functions
+	 */
+
+	/* Combat */
+	void HandlePlayerDeath();
+	
 protected:
 	/**
 	 * Variables

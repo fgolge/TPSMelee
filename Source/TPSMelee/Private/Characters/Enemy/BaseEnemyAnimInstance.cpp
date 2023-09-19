@@ -28,6 +28,6 @@ void UBaseEnemyAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	{
 		GroundSpeed = UKismetMathLibrary::VSizeXY(CharacterMovementComponent->Velocity);
 		Direction = UKismetAnimationLibrary::CalculateDirection(CharacterMovementComponent->Velocity, BaseEnemy->GetActorRotation());
-		// EnemyActionState = BaseEnemy->GetEnemyActionState();
+		bIsDead = !BaseEnemy->IsAlive();
 	}
 }

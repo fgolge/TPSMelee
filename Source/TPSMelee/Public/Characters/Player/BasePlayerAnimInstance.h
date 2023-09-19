@@ -54,6 +54,9 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
 	bool bIsUpperBody { false };
 
+	UPROPERTY(BlueprintReadOnly, Category = "Movement", meta = (AllowPrivateAccess = true))
+	bool bIsDead { false };
+
 	UPROPERTY(BlueprintReadOnly, Category = "State", meta = (AllowPrivateAccess = true))
 	EWeaponState WeaponState;
 	

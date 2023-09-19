@@ -80,5 +80,4 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetIsAttacking(bool Value);
-	
 };

@@ -46,6 +46,7 @@ private:
 	void FocusOnTarget(bool bShouldFocus);
 	void SetEnemyControl(bool bIsFocused);
 	bool IsAttacking();
+	void HandleEnemyDeath();
 	
 	/* Debug */
 	void DrawBoundaries() const;

@@ -41,6 +41,11 @@ void ABaseAIController::OnPossess(APawn* InPawn)
 
 	ControlledPawn = Cast<ABaseEnemy>(GetPawn());
 
+	if(ControlledPawn)
+	{
+		ControlledPawn->OnCharacterDied.BindUObject(this, &ABaseAIController::HandleEnemyDeath);
+	}
+
 	if(AIPerceptionComponent)
 	{
 		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ABaseAIController::TargetSpotted);
@@ -123,6 +128,12 @@ void ABaseAIController::ChaseTimerHandler()
 		GetWorldTimerManager().ClearTimer(DistanceTimer);
 		Investigate();
 	}
+	if(TargetActor->ActorHasTag(FName("Dead")))
+	{
+		GetWorldTimerManager().ClearTimer(DistanceTimer);
+		FocusOnTarget(false);
+		Patrol();
+	}
 }
 
 void ABaseAIController::EngageTimerHandler()
@@ -140,6 +151,12 @@ void ABaseAIController::EngageTimerHandler()
 	else if(ShouldFallBack())
 	{
 		SetEngagedState(EEnemyEngagedState::EEAS_Strafe);
+	}
+	if(TargetActor->ActorHasTag(FName("Dead")))
+	{
+		GetWorldTimerManager().ClearTimer(DistanceTimer);
+		FocusOnTarget(false);
+		Patrol();
 	}
 }
 
@@ -165,6 +182,11 @@ void ABaseAIController::FocusOnTarget(bool bShouldFocus)
 		SetEnemyControl(false);
 		ClearFocus(EAIFocusPriority::Default);
 	}
+}
+
+void ABaseAIController::HandleEnemyDeath()
+{
+	UnPossess();
 }
 
 void ABaseAIController::SetEnemyControl(bool bIsFocused)

@@ -56,6 +56,8 @@ void ABasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void ABasePlayer::Move(const FInputActionValue& Value)
 {
+	if(!IsAlive()) return;
+	
 	const FVector2d MovementVector = Value.Get<FVector2d>();
 	const FRotator YawRotation(0.f, GetControlRotation().Yaw, 0.f);
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
@@ -75,6 +77,8 @@ void ABasePlayer::Look(const FInputActionValue& Value)
 
 void ABasePlayer::Jump()
 {
+	if(!IsAlive()) return;
+	
 	if(IsUnoccupied())
 	{
 		Super::Jump();
@@ -104,7 +108,6 @@ void ABasePlayer::LockOnToTarget()
 	if(IsEngaged())
 	{
 		DisengageFromTarget();
-		TargetActor = nullptr;
 	}
 	else
 	{
@@ -151,6 +154,18 @@ void ABasePlayer::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitt
 	}
 	
 	Super::GetHit_Implementation(ImpactPoint, Hitter);
+}
+
+void ABasePlayer::Die()
+{
+	bIsUpperBody = false;
+	bIsFullBody = true;
+
+	DisengageFromTarget();
+	
+	Super::Die();
+
+	SetActionState(EActionState::EAS_Dead);
 }
 
 void ABasePlayer::EquipWeapon()
@@ -304,17 +319,17 @@ void ABasePlayer::AttachWeaponToSocket(FName SocketName)
 
 bool ABasePlayer::CanEquip()
 {
-	return Weapon && (IsUnoccupied());
+	return Weapon && IsUnoccupied() && IsAlive();
 }
 
 bool ABasePlayer::CanAttack()
 {
-	return IsEquipped() && (IsUnoccupied());
+	return IsEquipped() && IsUnoccupied() && IsAlive();
 }
 
 bool ABasePlayer::CanDodge()
 {
-	return IsUnoccupied();
+	return IsUnoccupied() && IsAlive();
 }
 
 void ABasePlayer::RotateActorForDodge()
@@ -387,6 +402,7 @@ void ABasePlayer::DisengageFromTarget()
 	SetCombatState(ECombatState::ECS_Free);
 	ClearWarpTarget();
 	EngagedCameraSettings(false);
+	TargetActor = nullptr;
 }
 
 float ABasePlayer::CalculateCentricityCost(FHitResult& HitResult)
@@ -421,7 +437,6 @@ bool ABasePlayer::ShouldLockOn()
 		}
 
 		DisengageFromTarget();
-		TargetActor = nullptr;
 		return false;
 	}
 

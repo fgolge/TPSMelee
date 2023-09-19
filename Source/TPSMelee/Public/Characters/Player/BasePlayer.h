@@ -102,6 +102,7 @@ private:
 
 	float DistanceWeight;
 	int32 AttackIndex { 0 };
+	FTimerHandle DeathTimer;
 	
 	/* Input */
 	UPROPERTY(EditDefaultsOnly, Category = "Input", meta = (AllowPrivateAccess = true))
@@ -177,6 +178,7 @@ protected:
 
 	/* Combat */
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
+	virtual void Die() override;
 
 public:
 	/**

@@ -22,7 +22,7 @@ void ABaseEnemy::BeginPlay()
 void ABaseEnemy::Die()
 {
 	Super::Die();
-
+	
 	SetLifeSpan(TimeToDestroyDeadActor);
 }
 

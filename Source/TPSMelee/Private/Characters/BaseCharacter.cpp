@@ -53,8 +53,11 @@ void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* H
 
 void ABaseCharacter::Die()
 {
+	Tags.Add(FName("Dead"));
+	OnCharacterDied.Execute();
 	PlayMontage(DeathMontage);
 	DisableMeshCollision();
+	DisableCapsule();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 

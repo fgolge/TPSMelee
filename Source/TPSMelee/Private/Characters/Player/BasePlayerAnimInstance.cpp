@@ -33,5 +33,6 @@ void UBasePlayerAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds
 		CombatState = BasePlayer->GetCombatState();
 		bIsFullBody = BasePlayer->IsFullBody();
 		bIsUpperBody = BasePlayer->IsUpperBody();
+		bIsDead = !BasePlayer->IsAlive();
 	}
 }
